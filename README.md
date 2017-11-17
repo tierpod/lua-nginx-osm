@@ -16,7 +16,7 @@ This Lua library is a Tirex client driver for the ngx_lua nginx module:
 
 http://wiki.nginx.org/HttpLuaModule
 
-This Lua library takes advantage of ngx_lua's cosocket API, which ensures 
+This Lua library takes advantage of ngx_lua's cosocket API, which ensures
 100% nonblocking behavior.
 
 It also includes utility to handle metatile, URIs in Lua language.
@@ -40,7 +40,7 @@ Synopsis
                 local tirex = require "osm.tirex"
                 local tile = require "osm.tile"
                 local data = require "osm.data"
-                
+
                 -- --------------------------------------------------
                 -- check uri
                 -- --------------------------------------------------
@@ -50,21 +50,21 @@ Synopsis
                 if not x then
                     return ngx.exit(ngx.HTTP_FORBIDDEN)
                 end
-                
+
                 -- check x, y, z range
                 local max_zoom = 18
                 local min_zoom = 5
                 if not tile.check_integrity_xyzm(x, y, z, minz, maxz) then
                     return ngx.exit(ngx.HTTP_FORBIDDEN)
                 end
-                
+
                 -- check x, y, z supported to generate
                 local region = data.get_region("japan")
                 if not osm_tile.is_inside_region(region, x, y, z)
                     -- try upstream server?
                     return ngx.exit(ngx.HTTP_FORBIDDEN)
                 end
-                
+
                 -- try renderd file
                 local tilefile = tile.xyz_to_metatile_filename(x, y, z)
                 local tilepath = tirex_tilepath.."/"..map.."/"..tilefile
@@ -74,7 +74,7 @@ Synopsis
                     ngx.print(png)
                     return ngx.OK
                 end
-    
+
                 -- ask tirex to render it
                 local ok = tirex.send_request(map, x, y, z)
                 if not ok then
@@ -111,7 +111,7 @@ xyz_to_metatile_filename
 **syntax:** *filename = osm.tile.xyz_to_metatile_filename(x, y, z)*
 
 Generate metatile filename from x/y/z cordination.
- 
+
 get_tile
 --------
 
@@ -148,7 +148,7 @@ Data methods
 ============
 
 **syntax:** * region = data.get_region("japan"))*
- 
+
 Get region definition table of argument country/area.
 This can use for is_inside_region() method.
 
@@ -167,8 +167,8 @@ request
 
 **syntax:** *result = osm.tirex.request(map, x, y, z1, z2, priority)*
 
-Request enqueue command to rendering map 'map' with x/y/z1 cordination and 
-priority. And also request to render in background between zoom z1 to z2. 
+Request enqueue command to rendering map 'map' with x/y/z1 cordination and
+priority. And also request to render in background between zoom z1 to z2.
 If request fails return nil.
 
 When z1 == z2, just ask to render single tile.
@@ -179,8 +179,8 @@ cancel
 
 **syntax:** *result = osm.tirex.cancel(map, x, y, z1, z2, priority)*
 
-Request dequeue command to rendering map 'map' with x/y/z1 cordination and 
-priority.And also request to cancel in background between zoom z1 to z2. 
+Request dequeue command to rendering map 'map' with x/y/z1 cordination and
+priority.And also request to cancel in background between zoom z1 to z2.
 If request fails return nil.
 
 
@@ -209,7 +209,7 @@ enqueue_request
 
 **syntax:** *result = osm.tirex.enqueue_request(map, x, y, z, priority)*
 
-Request enqueue command to rendering map 'map' with x/y/z cordination and 
+Request enqueue command to rendering map 'map' with x/y/z cordination and
 priority.
 If request fails return nil.
 
@@ -218,9 +218,26 @@ dequeue_request
 
 **syntax:** *result = osm.tirex.dequeue_request(map, x, y, z, priority)*
 
-Request dequeue command to rendering map 'map' with x/y/z cordination and 
+Request dequeue command to rendering map 'map' with x/y/z cordination and
 priority.
 If request fails return nil.
+
+
+Renderd Methods
+===============
+
+Based on tirex module.
+
+request
+-------
+
+**syntax:** *result = osm.renderd.request(map, x, y, z1, z2)*
+
+Request enqueue command to rendering map 'map' with x/y/z1 cordination and
+priority. And also request to render in background between zoom z1 to z2.
+If request fails return nil.
+
+When z1 == z2, just ask to render single tile.
 
 
 TODO
@@ -240,7 +257,7 @@ English Mailing List
 The [tile-serving](https://lists.openstreetmap.org/lists/tile-serving) mailing list is for English speakers.
 It is for all topic about tile serving development of openstreetmap, not only this project.
 
-Web Chat 
+Web Chat
 --------------------
 
 The [osmfj-devel](http://lingr.com/signup?letmein=osmfj_devel) web chat is in Japanese/English.
@@ -257,7 +274,7 @@ Please report bugs or submit patches by
 1. There are known problem that Tirex cannot response properly so we need to patch to tirex.
 
   https://trac.openstreetmap.org/ticket/4869
-  
+
   If you use Tirex 0.4.1(original)  or  tirex-0.4.1ppa4 and below, you need to patch to tirex.
   Here is a patch file in misc/tirex-peer.diff.
 
@@ -269,7 +286,7 @@ Hiroshi Miura <miurahr@osmf.jp>, OpenStreetMap Foundation Japan
 Copyright and License
 =====================
 
-Hiroshi Miura, 2013 
+Hiroshi Miura, 2013
 OpenStreetMap Foundation Japan, 2013
 
 Distributed under GPLv3 License.
@@ -282,4 +299,3 @@ See Also
 
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/miurahr/lua-nginx-osm/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
