@@ -57,17 +57,28 @@ int main(int argc, char *argv[])
     Traits                partition_traits;
     Validity_traits       validity_traits;
 
-    int testmode = 0;
-    int debugmode = 0;
+    bool testmode = false;
+    bool debugmode = false;
+    bool approximatemode = false;
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "td")) != -1)
+    while ((c = getopt (argc, argv, "hatd")) != -1)
     switch (c) {
+        case 'h':
+            fprintf (stdout, "Usage: poly2lua [-a|-t|-d]\n");
+            fprintf (stdout, "  -a flag enables 'approximate optimal convex partition' (default: use 'optimal convex partition' mode).\n");
+            fprintf (stdout, "  -t flag enables test mode (japan region).\n");
+            fprintf (stdout, "  -d flag enables debug mode (print is_convex result).\n");
+            fprintf (stdout, "\n  https://doc.cgal.org/latest/Partition_2/index.html\n");
+            return 0;
+        case 'a':
+            approximatemode = true;
+            break;
         case 't':
-            testmode = 1;
+            testmode = true;
             break;
         case 'd':
-            debugmode = 1;
+            debugmode = true;
             break;
         case '?':
             if (isprint (optopt))
@@ -86,25 +97,31 @@ int main(int argc, char *argv[])
     } else {
         polygon.clear();
         std::cin >> polygon;
-   }
+    }
 
-   CGAL::approx_convex_partition_2(polygon.vertices_begin(),
-                                    polygon.vertices_end(),
-                                    std::back_inserter(partition_polys),
-                                    partition_traits);
+    if (approximatemode) {
+      CGAL::approx_convex_partition_2(polygon.vertices_begin(),
+                                      polygon.vertices_end(),
+                                      std::back_inserter(partition_polys),
+                                      partition_traits);
+    } else {
+      CGAL::optimal_convex_partition_2(polygon.vertices_begin(),
+                                       polygon.vertices_end(),
+                                       std::back_inserter(partition_polys),
+                                       partition_traits);
+    }
 
-  std::cout << "local region = {" << std::endl;
-  for (std::list<Polygon_2>::iterator pit = partition_polys.begin();
-                                      pit != partition_polys.end();
-                                    ++pit){
+    std::cout << "local region = {" << std::endl;
+    for (std::list<Polygon_2>::iterator pit = partition_polys.begin();
+                                        pit != partition_polys.end();
+                                      ++pit){
       print_polygon_lua(*pit);
       if (debugmode) {
             // check if the polygon is convex
             std::cerr << "The polygon is " <<
                 ((*pit).is_convex() ? "" : "not ") << "convex." << std::endl;
       }
-   }
-   std::cout << "}" << std::endl << "return region" << std::endl;
-   return 0;
+    }
+    std::cout << "}" << std::endl << "return region" << std::endl;
+    return 0;
 }
-
