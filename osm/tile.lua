@@ -166,7 +166,7 @@ end
 
 -- get map name from uri
 -- arguments: string uri, ext
--- returns: map name or nil
+-- returns: string mapname or nil
 function get_mapname(uri, ext)
     local uri = tostring(uri)
     local captures = ''
@@ -184,16 +184,18 @@ function get_mapname(uri, ext)
     return omap
 end
 
-
+-- get tile coordinates from uri
+-- arguments: string uri, base, ext
+-- returns: int (ox, oy, oz) or nil
 function get_cordination(uri, base, ext)
     local uri = tostring(uri)
     local captures = ''
     if ext == '' then
-        captures = "^"..base.."/(%d+)/(%d+)/(%d+)"
+        captures = base.."/(%d+)/(%d+)/(%d+)"
     elseif sub(ext, 1) ~= '.' then
-        captures = "^"..base.."/(%d+)/(%d+)/(%d+)"..'.'..ext
+        captures = base.."/(%d+)/(%d+)/(%d+)"..'.'..ext
     else
-        captures = "^"..base.."/(%d+)/(%d+)/(%d+)"..ext
+        captures = base.."/(%d+)/(%d+)/(%d+)"..ext
     end
     local s,_,oz,ox,oy = find(uri, captures)
     if s == nil then
