@@ -78,6 +78,9 @@ function zoom_num(x, y, z, zoom)
     return x, y
 end
 
+-- checks if tile with x, y, z coordinates inside region
+-- arguments: table region, int x, y, z
+-- returns: true if tile inside region, otherwise false
 function is_inside_region(region, x, y, z)
     -- check inclusion of polygon
     local nx, ny = zoom_num(x, y, z, 20)
@@ -89,8 +92,8 @@ function is_inside_region(region, x, y, z)
             local x2, y2 = deg2num(v.lon, v.lat, 20)
             if x1 ~= nil then
                 local res = (y1 - y2) * nx + (x2 - x1) * ny + x1 * y2 - x2 * y1
-                if res < 0 then
-                    tmp_inc = nil
+                if res > 0 then
+                    tmp_inc = false
                     break
                 end
             end
@@ -101,9 +104,8 @@ function is_inside_region(region, x, y, z)
             return true
         end
     end
-    return nil
+    return false
 end
-
 
 -- function: xyz_to_filename
 -- arguments: int x, y, z
