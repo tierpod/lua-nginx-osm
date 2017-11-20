@@ -1,7 +1,8 @@
+LUA ?=             lua
 PREFIX ?=          /usr/local
 LUA_INCLUDE_DIR ?= $(PREFIX)/include
 LUA_LIB_DIR ?=     $(PREFIX)/lib/lua/$(LUA_VERSION)
-INSTALL ?= install
+INSTALL ?=         install
 
 POLY2LUA = utils/poly2lua/poly2lua
 
@@ -18,8 +19,9 @@ $(POLY2LUA): utils/poly2lua.cpp utils/CMakeLists.txt
 
 test:
 	cd tests \
-	lua5.1 test_tile.lua;\
-	lua5.1 test_inside.lua
+	$(LUA) test_tile.lua; \
+	$(LUA) test_inside_japan.lua; \
+	$(LUA) test_inside_iran.lua
 
 data:
 	$(MAKE) -C $(DATA) all

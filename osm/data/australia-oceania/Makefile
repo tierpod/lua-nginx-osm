@@ -2,14 +2,14 @@ POLY2LUA = ../../../utils/poly2lua/poly2lua
 KML2POLY = ../../../utils/kml2poly.py
 
 REGION = australia-oceania
-REGIONS_DATA = australia.lua  fiji.lua \
-               new-caledonia.lua new-zealand.lua
+REGIONS_DATA = australia.lua fiji.lua \
+	new-caledonia.lua new-zealand.lua
 
-.PHONY: all
+.PHONY: all clean
 
 all: $(REGIONS_DATA)
 
-%.poly:
+
 %.kml:
 	wget http://download.geofabrik.de/$(REGION)/$@
 
@@ -17,4 +17,4 @@ all: $(REGIONS_DATA)
 	cat $< | $(KML2POLY) | $(POLY2LUA) > $@
 
 clean:
-	rm '*.lua'
+	rm -f *.lua *.kml

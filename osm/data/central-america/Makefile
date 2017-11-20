@@ -2,14 +2,14 @@ POLY2LUA = ../../../utils/poly2lua/poly2lua
 KML2POLY = ../../../utils/kml2poly.py
 
 REGION = central-america
-REGIONS_DATA =  mexico.lua belize.lua cuba.lua guatemala.lua \
-                haiti-and-domrep.lua
+REGIONS_DATA = mexico.lua belize.lua \
+	cuba.lua guatemala.lua \
+	haiti-and-domrep.lua
 
-.PHONY: all
+.PHONY: all clean
 
 all: $(REGIONS_DATA)
 
-%.poly:
 %.kml:
 	wget http://download.geofabrik.de/$(REGION)/$@
 
@@ -17,4 +17,4 @@ all: $(REGIONS_DATA)
 	cat $< | $(KML2POLY) | $(POLY2LUA) > $@
 
 clean:
-	rm '*.lua'
+	rm -f *.lua *.kml
