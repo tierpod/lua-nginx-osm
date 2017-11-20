@@ -109,7 +109,7 @@ end
 -- arguments: int x, y, z
 -- return: filename of metatile
 --
-function xyz_to_metatile_filename (x, y, z) 
+function xyz_to_metatile_filename (x, y, z)
     local res=''
     local v = 0
     local mx = x - x % 8
@@ -136,7 +136,7 @@ end
 -- function get_tile
 -- arguments metatile filename, x, y
 -- return png or nil
--- 
+--
 --
 function get_tile(metafilename, x, y)
     local imgfile = metafilename
@@ -162,6 +162,26 @@ function get_tile(metafilename, x, y)
     end
     fd:close()
     return png, nil
+end
+
+-- get map name from uri
+-- arguments: string uri, ext
+-- returns: map name or nil
+function get_mapname(uri, ext)
+    local uri = tostring(uri)
+    local captures = ''
+    if ext == '' then
+        captures = '/([^/]+)/%d+/%d+/%d+'
+    elseif sub(ext, 1) ~= '.' then
+        captures = '/([^/]+)/%d+/%d+/%d+'..'.'..ext
+    else
+        captures = '/([^/]+)/%d+/%d+/%d+'..ext
+    end
+    local s,_,omap = find(uri, captures)
+    if s == nil then
+        return nil
+    end
+    return omap
 end
 
 
