@@ -188,6 +188,9 @@ function check_integrity_xyzm(x, y, z, minz, maxz)
     local z = tonumber(z)
     local minz = tonumber(minz)
     local maxz = tonumber(maxz)
+    if z == nil or x == nil or y == nil then
+        return nil
+    end
     if z < minz or z > maxz then
         return nil
     end
