@@ -2,7 +2,7 @@ POLY2LUA = ../../../utils/poly2lua/poly2lua
 KML2POLY = ../../../utils/kml2poly.py
 
 REGION = central-america
-REGIONS_DATA = mexico.lua belize.lua \
+REGIONS_DATA = belize.lua \
 	cuba.lua guatemala.lua \
 	haiti-and-domrep.lua
 
