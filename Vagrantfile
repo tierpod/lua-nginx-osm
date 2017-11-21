@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", inline: <<-SHELL
     yum install -y epel-release
-    yum install -y tmux mc git vim lua lua-bitop
+    yum install -y tmux mc git vim lua lua-bitop htop
     # for building poly2lua.cpp
     yum install -y https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
     yum install -y CGAL-devel gcc-c++
