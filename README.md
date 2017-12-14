@@ -1,7 +1,7 @@
 Name
 ====
 
-lua-nginx-osm - Lua Tirex client driver for the ngx_lua based on the cosocket API
+lua-nginx-osm - Lua Tirex/renderd/http client drivers for the ngx_lua based on the cosocket API.
 
 Status
 ======
@@ -12,7 +12,7 @@ This library is considered active development status.
 Description
 ===========
 
-This Lua library is a Tirex client driver for the ngx_lua nginx module:
+This Lua library is a tirex/renderd/http client drivers for the ngx_lua nginx module:
 
 http://wiki.nginx.org/HttpLuaModule
 
@@ -93,151 +93,18 @@ Synopsis
         }
     }
 
-Tile Methods
-=======
+Modules documentation
+=====================
 
-get_cordination
------------------
+* [tile methods](doc/osm_tile.md)
 
-**syntax:** *x, y, z = get_cordination(uri, map, ext)*
+* [data methods](doc/osm_data.md)
 
-Retrive x/y/z from uri path.
-If client GET uri   /example/9/3/1.png   then example map, z =9, x=3 and y=1
-and extension is png.
+* [tirex methods](doc/osm_tirex.md)
 
-xyz_to_metatile_filename
--------------------------
+* [mod_tile+renderd methods](doc/osm_renderd.md)
 
-**syntax:** *filename = osm.tile.xyz_to_metatile_filename(x, y, z)*
-
-Generate metatile filename from x/y/z cordination.
-
-get_tile
---------
-
-**syntax:** *png, err = osm.tile.get_tile(tilepath, x, y, z)*
-
-Get chunk of png image data of x/y/z cordination from metatile tilepath.
-
-check_integrity_xyzm
-----------------------
-
-**syntax:** *ok = osm.tile.check_integrity_xyzm(x, y, z, minz, maxz)*
-
-Check whether x/y/z integrity.
-Tile x/y/z definition details are in
-   https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-
-check_integrity_xyz
-----------------------
-
-**syntax:** *ok = osm.tile.check_integrity_xyzm(x, y, z)*
-
-Same as check_integrity_xyzm() but don't check z range.
-
-is_inside_region
---------
-
-**syntax:** *include = osm.tile.is_inside_region(region, x, y, z)*
-
-Check x/y/z cordination is located and inside of region.
-region should be get from 'osm.data'
-
-
-Data methods
-============
-
-**syntax:** * region = data.get_region("japan"))*
-
-Get region definition table of argument country/area.
-This can use for is_inside_region() method.
-
-Now provide following area/country data:
-
-    japan
-    asia
-    world
-
-
-Tirex Methods
-=======
-
-request
--------------
-
-**syntax:** *result = osm.tirex.request(map, x, y, z1, z2, priority)*
-
-Request enqueue command to rendering map 'map' with x/y/z1 cordination and
-priority. And also request to render in background between zoom z1 to z2.
-If request fails return nil.
-
-When z1 == z2, just ask to render single tile.
-
-
-cancel
--------------
-
-**syntax:** *result = osm.tirex.cancel(map, x, y, z1, z2, priority)*
-
-Request dequeue command to rendering map 'map' with x/y/z1 cordination and
-priority.And also request to cancel in background between zoom z1 to z2.
-If request fails return nil.
-
-
-ping
--------------
-
-**syntax:** *result = osm.tirex.ping()*
-
-Request ping command. If request fails return nil.
-
-
-Obsolete functions
-=============
-
-send_request
--------------
-
-**syntax:** *result = osm.tirex.send_request(map, x, y, z)*
-
-Request enqueue command to rendering map 'map' with x/y/z cordination.
-If request fails return nil.
-
-
-enqueue_request
--------------
-
-**syntax:** *result = osm.tirex.enqueue_request(map, x, y, z, priority)*
-
-Request enqueue command to rendering map 'map' with x/y/z cordination and
-priority.
-If request fails return nil.
-
-dequeue_request
--------------
-
-**syntax:** *result = osm.tirex.dequeue_request(map, x, y, z, priority)*
-
-Request dequeue command to rendering map 'map' with x/y/z cordination and
-priority.
-If request fails return nil.
-
-
-Renderd Methods
-===============
-
-Based on tirex module.
-
-request
--------
-
-**syntax:** *result = osm.renderd.request(map, x, y, z1, z2)*
-
-Request enqueue command to rendering map 'map' with x/y/z1 cordination and
-priority. And also request to render in background between zoom z1 to z2.
-If request fails return nil.
-
-When z1 == z2, just ask to render single tile.
+* [custom http backend methods](doc/osm_http.md)
 
 
 TODO
@@ -288,6 +155,8 @@ Copyright and License
 
 Hiroshi Miura, 2013
 OpenStreetMap Foundation Japan, 2013
+Mikhail Okhotin, 2016
+Pavel Podkorytov, 2017
 
 Distributed under GPLv3 License.
 
