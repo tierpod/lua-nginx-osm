@@ -1,8 +1,9 @@
 --
--- Lua script for interface Renderd engine
+-- Lua script for interface HTTP engine. Use https://github.com/pintsized/lua-resty-http to make
+-- http requests.
 --
 --
--- Copyright (C) 2016, Mikhail Okhotin
+-- Copyright (C) 2017, Pavel Podkorytov
 -- Based on Tirex interface by Hiroshi Miura
 --
 --    This program is free software: you can redistribute it and/or modify
@@ -19,39 +20,29 @@
 --    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --
 
-local shmem = ngx.shared.osm_renderd
+local resty_http = require "resty.http"
+local osm_tile = require 'osm.tile'
 
-local tcp = ngx.socket.tcp
+local ngx_root = ngx
+local shmem = ngx.shared.osm_http
 local time = ngx.time
 local timerat = ngx.timer.at
 local sleep = ngx.sleep
 
 local format = string.format
-local char = string.char
-local rep = string.rep
-local len = string.len
-local sub = string.sub
-local match = string.match
 
-local floor = math.floor
-
-local unpack = unpack
 local pairs = pairs
 local tonumber = tonumber
-local tostring = tostring
 local error = error
 local setmetatable = setmetatable
 
 local print = print
 
-local osm_tile = require 'osm.tile'
-
 module(...)
 
 _VERSION = '0.1'
 
-local renderdsock = 'unix:/var/run/renderd/renderd.socket'
-local renderd_cmd_size = 64
+local http_entrypoint = 'http://localhost'
 
 -- ------------------------------------
 -- Syncronize thread functions
@@ -71,9 +62,9 @@ local renderd_cmd_size = 64
 --   to syncronize amoung nginx threads
 --   we use ngx.shared.DICT interface.
 --
---   Here we use ngx.shared.osm_renderd
+--   Here we use ngx.shared.osm_http
 --   you need to set /etc/conf.d/lua.conf
---      ngx_shared_dict osm_renderd 10m;
+--      ngx_shared_dict osm_http 10m;
 
 --   status definitions
 --    key is not exist: no job exist for its x/y/z
@@ -97,9 +88,6 @@ local SEND       = 200
 local SUCCEEDED  = 300
 local FAILED     = 400
 local SPECIAL    = 999
-
-local PROT_RENDER = 1
-local PROT_DONE   = 3
 
 --  if key exist, it returns false
 --  else it returns true
@@ -175,26 +163,6 @@ local function wait_signal(key, timeout)
     return nil
 end
 
--- function: ntob
---
-local function ntob(n, len)
-    local bytes = {}
-    for i=1, len do
-        bytes[i] = n % 256
-        n = floor(n / 256)
-    end
-    return char(unpack(bytes))
-end
-
--- function: bton
---
-local function bton(s)
-    local bytes, n = {s:byte(1,-1)}, 0
-    for i=0, #s-1 do
-        n = n + bytes[1+i] * 256^i
-    end
-    return n
-end
 
 -- function: serialize_msg
 -- argument: table msg
@@ -202,24 +170,10 @@ end
 --
 local function serialize_msg (msg)
     local str = ''
-    str = ntob(2,4)..ntob(msg["cmd"],4)..ntob(msg["x"],4)..ntob(msg["y"],4)..ntob(msg["z"],4)
-    str = str..msg["map"]..rep('\0',44-len(msg["map"]))
+    str = http_entrypoint..'/'..msg["map"]..'/'..msg["z"]..'/'..msg["x"]..'/'..msg["y"]..".png"
     return str
 end
 
--- function: deserialize_msg
--- argument: string str: recieved message from renderd
--- return: table
---
-local function deserialize_msg (str)
-    local msg = {
-        ["cmd"] = bton(sub(str,5,8)),
-        ["x"]   = bton(sub(str,9,12)),
-        ["y"]   = bton(sub(str,13,16)),
-        ["z"]   = bton(sub(str,17,20)),
-        ["map"] = match(sub(str,21,61),'%Z*')}
-    return msg
-end
 
 local function get_key(map, mx, my, mz)
     return format("%s:%d:%d:%d", map, mx, my, mz)
@@ -229,47 +183,24 @@ end
 -- ========================================================
 --  It does not share context and global vals/funcs
 --
-local renderd_bk_handler
-renderd_bk_handler = function (premature)
-    local renderdsock = 'unix:/var/run/renderd/renderd.socket'
-    local renderd_cmd_size = 64
-    local shmem = ngx.shared.osm_renderd
+local http_bk_handler
+http_bk_handler = function (premature)
+    local http_entrypoint = 'http://localhost'
+    local shmem = ngx.shared.osm_http
 
     local REQUEST   = 100
     local SEND      = 200
     local SUCCEEDED = 300
     local FAILED    = 400
 
-    local PROT_DONE = 3
-
-    -- here we cannot refer func so define again
-    local function bton(s)
-        local bytes, n = {s:byte(1,-1)}, 0
-        for i=0, #s-1 do
-            n = n + bytes[1+i] * 256^i
-        end
-        return n
-    end
-
-    local deserialize_msg = function (str)
-        local msg = {
-            ["cmd"] = bton(sub(str,5,8)),
-            ["x"]   = bton(sub(str,9,12)),
-            ["y"]   = bton(sub(str,13,16)),
-            ["z"]   = bton(sub(str,17,20)),
-            ["map"] = match(sub(str,21,61),'%Z*')}
-        return msg
-    end
-
     if premature then
         -- clean up
-        shmem:delete('_renderd_handler')
+        shmem:delete('_http_handler')
         return
     end
 
-    local tcpsock = ngx.socket.tcp()
-    tcpsock:connect(renderdsock)
-    tcpsock:settimeout(100)
+    local httpc = resty_http.new()
+    httpc:set_timeout(30000)
 
     while true do
         -- send requests first...
@@ -277,10 +208,8 @@ renderd_bk_handler = function (premature)
         for key,index in pairs(indexes) do
             local req, flag = shmem:get(index)
             if flag == REQUEST then
-                local ok,err=tcpsock:send(req)
-                if ok then
-                    shmem:replace(index, req, 300, SEND)
-                else
+                local res, err = httpc:request_uri(req)
+                if not res then
                     print('bkreq failed ',index)
                 end
             end
@@ -289,27 +218,16 @@ renderd_bk_handler = function (premature)
         sleep(0.1)
 
         -- then receive response
-        tcpsock:settimeout(100)
-        local data, err = tcpsock:receive(renderd_cmd_size)
-        if data then
-            local msg = deserialize_msg(data)
-            local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
-            local res = msg["cmd"]
-            --send_signal to client context
-            local ok
-            if res == PROT_DONE then
-                shmem:set(index, res, 300, SUCCEEDED)
-            else
-                print('bkres failed ',index)
-                shmem:set(index, res, 300, FAILED)
-            end
+        if res == ngx_root.HTTP_OK then
+            shmem:set(index, res, 300, SUCCEEDED)
+        elseif res == ngx_root.HTTP_CREATED then
+            -- TODO: try multiple times
+            shmem:set(index, res, 300, SUCCEEDED)
         else
-            -- err can be 'timeout', 'partial write', 'closed',
-            -- 'buffer too small' or 'out of memory'
-            -- do nothing at this time
+            print('bkres failed ',index)
+            shmem:set(index, res, 300, FAILED)
         end
     end
-    tcpsock:close()
 end
 
 local function background_enqueue_request(map, x, y, z)
@@ -319,7 +237,6 @@ local function background_enqueue_request(map, x, y, z)
     local id = time()
     local index = get_key(map, mx, my, mz)
     local req = serialize_msg({
-        ["cmd"] = PROT_RENDER,
         ["x"]   = mx,
         ["y"]   = my,
         ["z"]   = mz,
@@ -328,37 +245,27 @@ local function background_enqueue_request(map, x, y, z)
     if not ok then
         return nil
     end
-    local handle = get_handle('_renderd_handler', 0, 0, SPECIAL)
+    local handle = get_handle('_http_handler', 0, 0, SPECIAL)
     if handle then
-        -- only single light thread can handle Renderd
-        timerat(0, renderd_bk_handler)
+        -- only single light thread can handle http
+        timerat(0, http_bk_handler)
     end
     return true
 end
 
 
--- function: send_renderd_request
--- return: resulted msg{}
+-- function: send_http_request
+-- return: resulted http status
 --
-local function send_renderd_request(req)
-    local tcpsock = tcp()
-    tcpsock:settimeout(100)
-    tcpsock:connect(renderdsock)
-    local ok,err=tcpsock:send(req)
-    if not ok then
-        print('send ',err)
-        tcpsock:close()
+local function send_http_request(req)
+    local httpc = resty_http.new()
+    httpc:set_timeout(30000)
+    local res, err = httpc:request_uri(req)
+    if not res then
+        print('failed to request: ', err)
         return nil
     end
-    tcpsock:settimeout(30000)
-    local data, err = tcpsock:receive(renderd_cmd_size)
-    tcpsock:close()
-    if not data then
-        print('recv ',err)
-        return nil
-    end
-    local msg = deserialize_msg(data)
-    return msg
+    return res.status
 end
 
 -- funtion: enqueue_request
@@ -372,26 +279,27 @@ function enqueue_request (map, x, y, z)
     local id = time()
     local index = get_key(map, mx, my, mz)
     local req = serialize_msg({
-        ["cmd"] = PROT_RENDER,
         ["x"]   = mx,
         ["y"]   = my,
         ["z"]   = mz,
         ["map"] = map})
+
     local ok = get_handle(index, req, 300, GOTHANDLE)
+
     if not ok then
         return wait_signal(index, 30)
     end
-    local msg = send_renderd_request(req)
-    if not msg then
+
+    local status = send_http_request(req)
+    if not status then
         print('req failed ',index)
         return send_signal(index, 300, FAILED)
     end
-    local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
-    local res = msg["cmd"]
-    if res == PROT_DONE then
+
+    if status == ngx_root.HTTP_OK then
         return send_signal(index, 300, SUCCEEDED)
     else
-        print('res failed ',index)
+        print('status failed ',index)
         return send_signal(index, 300, FAILED)
     end
 end
@@ -406,6 +314,7 @@ function request (map, x, y, z1, z2)
     if z1 > z2 then
         return nil
     end
+
     local res = enqueue_request(map, x, y, z1)
     if not res then
         return nil
