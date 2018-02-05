@@ -20,6 +20,8 @@
 local setmetatable = setmetatable
 local error = error
 local require = require
+local io_popen = io.popen
+local tonumber = tonumber
 local myname = ...
 
 module(...)
@@ -181,6 +183,39 @@ function get_region(name)
     end
     local region = require(target[name])
     return region
+end
+
+-- compare modification time of two files.
+-- return true if file1 newer than file2, otherwise false.
+function is_file_newer(file1, file2)
+    -- get file mtime with 'stat' utility in unixtime
+    -- return: mtime (int) or false
+    local function get_mtime(filename)
+        local fd = io_popen('/usr/bin/stat -c %Y '..filename..' 2>&1')
+        if fd == nil then
+            return false
+        end
+
+        local mtime = fd:read()
+        fd:close()
+        return tonumber(mtime)
+    end
+
+    local file1_mtime = get_mtime(file1)
+    if not file1_mtime then
+        return false
+    end
+
+    local file2_mtime = get_mtime(file2)
+    if not file2_mtime then
+        return false
+    end
+
+    if file1_mtime > file2_mtime then
+        return true
+    end
+
+    return false
 end
 
 local class_mt = {
