@@ -275,6 +275,14 @@ function is_outdated(metafilename, flagfilename, map, exptime)
     return last_update > mtime
 end
 
+-- get last update time for map from nginx shared cache
+-- args: map (string)
+-- returns: last_update time (string)
+function get_last_update(map)
+    local last_update = shmem:get(map)
+    return last_update
+end
+
 local class_mt = {
     -- to prevent use of casual module global variables
     __newindex = function (table, key, val)
