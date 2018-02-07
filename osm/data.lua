@@ -3,6 +3,7 @@
 --
 --
 -- Copyright (C) 2013, Hiroshi Miura
+-- Copyright (C) 2018, Pavel Podkorytov
 --
 --    This program is free software: you can redistribute it and/or modify
 --    it under the terms of the GNU General Public License as published by
@@ -26,7 +27,7 @@ local myname = ...
 
 module(...)
 
-_VERSION = '0.30'
+_VERSION = '0.31'
 
 local target = {
     ['africa']                    = myname .. '.africa',
@@ -165,13 +166,13 @@ local target = {
   }
 
 local world = {
-   {
+  {
     {lon=-180, lat=-89.9},
     {lon=-180, lat=89.9},
     {lon=180, lat=89.9},
     {lon=180, lat=-89.9},
     {lon=-180, lat=-89.9}
-   }
+  }
 }
 
 function get_region(name)
@@ -185,37 +186,35 @@ function get_region(name)
     return region
 end
 
+-- get file modification time with 'stat' utility in unixtime
+-- args: filename (string)
+-- returns: mtime (int) or nil
+function get_mtime(filename)
+    local fd = io_popen('/usr/bin/stat -c %Y '..filename..' 2>&1')
+    if fd == nil then
+        return nil
+    end
+
+    local mtime = fd:read()
+    fd:close()
+    return tonumber(mtime)
+end
+
 -- compare modification time of two files.
--- return true if file1 newer than file2, otherwise false.
+-- args: file1, file2 (string)
+-- returns: true if file1 newer than file2, otherwise false.
 function is_file_newer(file1, file2)
-    -- get file mtime with 'stat' utility in unixtime
-    -- return: mtime (int) or false
-    local function get_mtime(filename)
-        local fd = io_popen('/usr/bin/stat -c %Y '..filename..' 2>&1')
-        if fd == nil then
-            return false
-        end
-
-        local mtime = fd:read()
-        fd:close()
-        return tonumber(mtime)
-    end
-
-    local file1_mtime = get_mtime(file1)
-    if not file1_mtime then
+    local mtime1 = get_mtime(file1)
+    if mtime1 == nil then
         return false
     end
 
-    local file2_mtime = get_mtime(file2)
-    if not file2_mtime then
+    local mtime2 = get_mtime(file2)
+    if mtime2 == nil then
         return false
     end
 
-    if file1_mtime > file2_mtime then
-        return true
-    end
-
-    return false
+    return mtime1 > mtime2
 end
 
 local class_mt = {
