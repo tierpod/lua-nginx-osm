@@ -61,3 +61,10 @@ as outdated and rerender it.
 
 Use nginx shared dict for cache mtime of flagfilename per map name (does not need to read this file
 on every request).
+
+get_last_update
+---------------
+
+**syntax:** *time = get_last_update(map)*
+
+Get last update time stored in nginx shared memory cache for given map.
