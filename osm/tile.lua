@@ -3,6 +3,7 @@
 --
 --
 -- Copyright (C) 2013, Hiroshi Miura
+-- Copyright (C) 2018, Pavel Podkorytov
 --
 --    This program is free software: you can redistribute it and/or modify
 --    it under the terms of the GNU General Public License as published by
@@ -38,10 +39,11 @@ local io_read = io.read
 local io_close = io.close
 local io_seek = io.seek
 local setmetatable = setmetatable
+local error = error
 
 module(...)
 
-_VERSION = '0.10'
+_VERSION = '0.11'
 
 local mt = { __index = _M }
 
