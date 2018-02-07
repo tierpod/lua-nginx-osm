@@ -1,7 +1,7 @@
 -- included from access_by_lua_file
 
 local osm_tile = require 'osm.tile'
-local data = require 'osm.data'
+local osm_data = require 'osm.data'
 
 local minz = 1
 local maxz = 18
@@ -20,7 +20,7 @@ end
 local x, y, z = osm_tile.get_cordination(ngx.var.uri, map, 'png')
 
 -- redefine max zoom level for some regions
-local region = data.get_region('japan')
+local region = osm_data.get_region('japan')
 if osm_tile.is_inside_region(region, x, y, z) then
   maxz = 19
   -- ngx.log(ngx.ERR, 'inside region')

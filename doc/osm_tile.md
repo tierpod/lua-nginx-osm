@@ -47,3 +47,17 @@ is_inside_region
 
 Check x/y/z cordination is located and inside of region.
 region should be get from 'osm.data'
+
+is_outdated
+-----------
+
+**syntax:** *is_outdated = osm.tile.is_outdated(metafilename, flagfilename, map, exptime)*
+
+Checks if metatile file is outdated.
+
+Implements mod_tile-like logic: if modification time of metatile file (metafilename) older than
+modification time of /var/lib/mod_tile/planet-import-complete (flagfilename), mark metatile file
+as outdated and rerender it.
+
+Use nginx shared dict for cache mtime of flagfilename per map name (does not need to read this file
+on every request).
