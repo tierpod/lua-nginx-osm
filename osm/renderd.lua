@@ -396,16 +396,26 @@ function enqueue_request (map, x, y, z)
     end
 end
 
--- funtion: request
--- argument: map, x, y, zoom, maxzoom
--- return:   true or nil
+-- enqueue command to rendering tile with map/z1/x/y coordinates. If background=true, do no wait for
+-- rendering complete and return true. And also request to render in background between zoom z1 to
+-- z2. If request fails return nil.
 --
-function request (map, x, y, z1, z2)
+-- argument: map (string), x, y, z1=zoom, z2=maxzoom (int),
+--           background (bool, optional, default=false)
+-- return:   true or nil
+function request (map, x, y, z1, z2, background)
+    local background = background or false
     local z2 = tonumber(z2)
     local z1 = tonumber(z1)
     if z1 > z2 then
         return nil
     end
+
+    if background then
+        background_enqueue_request(map, x, y, z1)
+        return true
+    end
+
     local res = enqueue_request(map, x, y, z1)
     if not res then
         return nil
