@@ -3,6 +3,7 @@
 --
 --
 -- Copyright (C) 2016, Mikhail Okhotin
+-- Copyright (C) 2018, Pavel Podkorytov
 -- Based on Tirex interface by Hiroshi Miura
 --
 --    This program is free software: you can redistribute it and/or modify
@@ -48,7 +49,7 @@ local osm_tile = require 'osm.tile'
 
 module(...)
 
-_VERSION = '0.1'
+_VERSION = '0.2'
 
 local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
 local renderd_cmd_size = 64
