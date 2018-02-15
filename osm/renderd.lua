@@ -50,7 +50,7 @@ module(...)
 
 _VERSION = '0.1'
 
-local renderdsock = 'unix:/var/run/renderd/renderd.socket'
+local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
 local renderd_cmd_size = 64
 
 -- ------------------------------------
@@ -231,7 +231,7 @@ end
 --
 local renderd_bk_handler
 renderd_bk_handler = function (premature)
-    local renderdsock = 'unix:/var/run/renderd/renderd.socket'
+    local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
     local renderd_cmd_size = 64
     local shmem = ngx.shared.osm_renderd
 
@@ -261,55 +261,73 @@ renderd_bk_handler = function (premature)
         return msg
     end
 
+    local function send_renderd_request(req)
+        local tcpsock = tcp()
+        tcpsock:settimeout(100)
+        tcpsock:connect(renderd_sock)
+        local ok,err=tcpsock:send(req)
+        if not ok then
+            print('send ',err)
+            tcpsock:close()
+            return nil
+        end
+        tcpsock:settimeout(30000)
+        local data, err = tcpsock:receive(renderd_cmd_size)
+        tcpsock:close()
+        if not data then
+            print('recv ',err)
+            return nil
+        end
+        local msg = deserialize_msg(data)
+        return msg
+    end
+
+    local function send_signal(key, timeout, flag)
+        local ok, err = shmem:set(key, 0, timeout, flag)
+        if not ok then
+            return nil
+        end
+        return true
+    end
+
     if premature then
         -- clean up
         shmem:delete('_renderd_handler')
         return
     end
 
-    local tcpsock = ngx.socket.tcp()
-    tcpsock:connect(renderdsock)
-    tcpsock:settimeout(100)
-
+    -- repeat this in single background light thread
     while true do
-        -- send requests first...
+        local req = nil
+
+        -- get request
         local indexes = shmem:get_keys()
         for key,index in pairs(indexes) do
-            local req, flag = shmem:get(index)
+            local request, flag = shmem:get(index)
             if flag == REQUEST then
-                local ok,err=tcpsock:send(req)
-                if ok then
-                    shmem:replace(index, req, 300, SEND)
-                else
-                    print('bkreq failed ',index)
-                end
+                req = request
             end
         end
 
         sleep(0.1)
 
-        -- then receive response
-        tcpsock:settimeout(100)
-        local data, err = tcpsock:receive(renderd_cmd_size)
-        if data then
-            local msg = deserialize_msg(data)
+        if req then
+            local msg = send_renderd_request(req)
+            if not msg then
+                print('req failed ',index)
+                send_signal(index, 300, FAILED)
+            end
             local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
             local res = msg["cmd"]
-            --send_signal to client context
-            local ok
             if res == PROT_DONE then
-                shmem:set(index, res, 300, SUCCEEDED)
+                print('res done ', index)
+                send_signal(index, 300, SUCCEEDED)
             else
-                print('bkres failed ',index)
-                shmem:set(index, res, 300, FAILED)
+                print('res failed ', index)
+                send_signal(index, 300, FAILED)
             end
-        else
-            -- err can be 'timeout', 'partial write', 'closed',
-            -- 'buffer too small' or 'out of memory'
-            -- do nothing at this time
         end
     end
-    tcpsock:close()
 end
 
 local function background_enqueue_request(map, x, y, z)
@@ -333,7 +351,6 @@ local function background_enqueue_request(map, x, y, z)
         -- only single light thread can handle Renderd
         timerat(0, renderd_bk_handler)
     end
-    return true
 end
 
 
@@ -343,7 +360,7 @@ end
 local function send_renderd_request(req)
     local tcpsock = tcp()
     tcpsock:settimeout(100)
-    tcpsock:connect(renderdsock)
+    tcpsock:connect(renderd_sock)
     local ok,err=tcpsock:send(req)
     if not ok then
         print('send ',err)
@@ -396,13 +413,10 @@ function enqueue_request (map, x, y, z)
     end
 end
 
--- enqueue command to rendering tile with map/z1/x/y coordinates. If background=true, do no wait for
--- rendering complete and return true. And also request to render in background between zoom z1 to
--- z2. If request fails return nil.
---
--- argument: map (string), x, y, z1=zoom, z2=maxzoom (int),
---           background (bool, optional, default=false)
+-- funtion: request
+-- argument: map, x, y, zoom, maxzoom
 -- return:   true or nil
+--
 function request (map, x, y, z1, z2, background)
     local background = background or false
     local z2 = tonumber(z2)
@@ -412,8 +426,7 @@ function request (map, x, y, z1, z2, background)
     end
 
     if background then
-        background_enqueue_request(map, x, y, z1)
-        return true
+        return background_enqueue_request(map, x, y, z1)
     end
 
     local res = enqueue_request(map, x, y, z1)
