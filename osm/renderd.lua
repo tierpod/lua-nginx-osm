@@ -24,7 +24,6 @@ local shmem = ngx.shared.osm_renderd
 
 local tcp = ngx.socket.tcp
 local time = ngx.time
-local timerat = ngx.timer.at
 local sleep = ngx.sleep
 
 local format = string.format
@@ -43,13 +42,11 @@ local tostring = tostring
 local error = error
 local setmetatable = setmetatable
 
-local print = print
-
 local osm_tile = require 'osm.tile'
 
 module(...)
 
-_VERSION = '0.2'
+_VERSION = '0.3'
 
 local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
 local renderd_cmd_size = 64
@@ -99,8 +96,10 @@ local SUCCEEDED  = 300
 local FAILED     = 400
 local SPECIAL    = 999
 
-local PROT_RENDER = 1
-local PROT_DONE   = 3
+local PROT_RENDER   = 1
+local PROT_DIRTY    = 2
+local PROT_DONE     = 3
+local PROT_NOT_DONE = 4
 
 --  if key exist, it returns false
 --  else it returns true
@@ -161,18 +160,18 @@ local function wait_signal(key, timeout)
             if flag == SUCCEEDED then
                 return true
             elseif flag == FAILED then
-                print('wait failed ',key)
+                print('wait failed ', key)
                 return nil
             else
                 -- do nothing
             end
             sleep(0.1)
         else
-            print('wait notval ',key)
+            print('wait notval ', key)
             return nil
         end
     end
-    print('wait timeout ',key)
+    print('wait timeout ', key)
     return nil
 end
 
@@ -226,135 +225,6 @@ local function get_key(map, mx, my, mz)
     return format("%s:%d:%d:%d", map, mx, my, mz)
 end
 
-
--- ========================================================
---  It does not share context and global vals/funcs
---
-local renderd_bk_handler
-renderd_bk_handler = function (premature)
-    local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
-    local renderd_cmd_size = 64
-    local shmem = ngx.shared.osm_renderd
-
-    local REQUEST   = 100
-    local SEND      = 200
-    local SUCCEEDED = 300
-    local FAILED    = 400
-
-    local PROT_DONE = 3
-
-    -- here we cannot refer func so define again
-    local function bton(s)
-        local bytes, n = {s:byte(1,-1)}, 0
-        for i=0, #s-1 do
-            n = n + bytes[1+i] * 256^i
-        end
-        return n
-    end
-
-    local deserialize_msg = function (str)
-        local msg = {
-            ["cmd"] = bton(sub(str,5,8)),
-            ["x"]   = bton(sub(str,9,12)),
-            ["y"]   = bton(sub(str,13,16)),
-            ["z"]   = bton(sub(str,17,20)),
-            ["map"] = match(sub(str,21,61),'%Z*')}
-        return msg
-    end
-
-    local function send_renderd_request(req)
-        local tcpsock = tcp()
-        tcpsock:settimeout(100)
-        tcpsock:connect(renderd_sock)
-        local ok,err=tcpsock:send(req)
-        if not ok then
-            print('send ',err)
-            tcpsock:close()
-            return nil
-        end
-        tcpsock:settimeout(30000)
-        local data, err = tcpsock:receive(renderd_cmd_size)
-        tcpsock:close()
-        if not data then
-            print('recv ',err)
-            return nil
-        end
-        local msg = deserialize_msg(data)
-        return msg
-    end
-
-    local function send_signal(key, timeout, flag)
-        local ok, err = shmem:set(key, 0, timeout, flag)
-        if not ok then
-            return nil
-        end
-        return true
-    end
-
-    if premature then
-        -- clean up
-        shmem:delete('_renderd_handler')
-        return
-    end
-
-    -- repeat this in single background light thread
-    while true do
-        local req = nil
-
-        -- get request
-        local indexes = shmem:get_keys()
-        for key,index in pairs(indexes) do
-            local request, flag = shmem:get(index)
-            if flag == REQUEST then
-                req = request
-            end
-        end
-
-        sleep(0.1)
-
-        if req then
-            local msg = send_renderd_request(req)
-            if not msg then
-                print('req failed ',index)
-                send_signal(index, 300, FAILED)
-            end
-            local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
-            local res = msg["cmd"]
-            if res == PROT_DONE then
-                print('res done ', index)
-                send_signal(index, 300, SUCCEEDED)
-            else
-                print('res failed ', index)
-                send_signal(index, 300, FAILED)
-            end
-        end
-    end
-end
-
-local function background_enqueue_request(map, x, y, z)
-    local mx = x - x % 8
-    local my = y - y % 8
-    local mz = z
-    local id = time()
-    local index = get_key(map, mx, my, mz)
-    local req = serialize_msg({
-        ["cmd"] = PROT_RENDER,
-        ["x"]   = mx,
-        ["y"]   = my,
-        ["z"]   = mz,
-        ["map"] = map})
-    local ok = get_handle(index, req, 300, REQUEST)
-    if not ok then
-        return nil
-    end
-    local handle = get_handle('_renderd_handler', 0, 0, SPECIAL)
-    if handle then
-        -- only single light thread can handle Renderd
-        timerat(0, renderd_bk_handler)
-    end
-end
-
-
 -- function: send_renderd_request
 -- return: resulted msg{}
 --
@@ -364,7 +234,7 @@ local function send_renderd_request(req)
     tcpsock:connect(renderd_sock)
     local ok,err=tcpsock:send(req)
     if not ok then
-        print('send ',err)
+        print('send ', err)
         tcpsock:close()
         return nil
     end
@@ -372,7 +242,7 @@ local function send_renderd_request(req)
     local data, err = tcpsock:receive(renderd_cmd_size)
     tcpsock:close()
     if not data then
-        print('recv ',err)
+        print('recv ', err)
         return nil
     end
     local msg = deserialize_msg(data)
@@ -383,14 +253,15 @@ end
 -- argument: map, x, y, zoom
 -- return:   true or nil
 --
-function enqueue_request (map, x, y, z)
+function enqueue_request (map, x, y, z, priority)
     local mx = x - x % 8
     local my = y - y % 8
     local mz = z
+    local priority = priority
     local id = time()
     local index = get_key(map, mx, my, mz)
     local req = serialize_msg({
-        ["cmd"] = PROT_RENDER,
+        ["cmd"] = priority,
         ["x"]   = mx,
         ["y"]   = my,
         ["z"]   = mz,
@@ -401,36 +272,42 @@ function enqueue_request (map, x, y, z)
     end
     local msg = send_renderd_request(req)
     if not msg then
-        print('req failed ',index)
+        print('req failed ', index)
         return send_signal(index, 300, FAILED)
     end
     local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
     local res = msg["cmd"]
-    if res == PROT_DONE then
+    -- "dirty" request returns PROT_NOT_DONE immediately
+    if (priority == PROT_DIRTY and res == PROT_NOT_DONE) then
+        return send_signal(index, 300, SUCCEEDED)
+    -- "render" request waits for rendering complete
+    elseif (priority == PROT_RENDER and res == PROT_DONE) then
         return send_signal(index, 300, SUCCEEDED)
     else
-        print('res failed ',index)
+        print('res failed ', index)
         return send_signal(index, 300, FAILED)
     end
 end
 
 -- funtion: request
--- argument: map, x, y, zoom, maxzoom
+-- argument: map (string), x, y, zoom, maxzoom (int), background (bool)
 -- return:   true or nil
 --
+-- if background is true, send request with dirty priority (do not wait for results).
+--
 function request (map, x, y, z1, z2, background)
-    local background = background or false
     local z2 = tonumber(z2)
     local z1 = tonumber(z1)
     if z1 > z2 then
         return nil
     end
 
+    local priority = PROT_RENDER
     if background then
-        return background_enqueue_request(map, x, y, z1)
+        priority = PROT_DIRTY
     end
 
-    local res = enqueue_request(map, x, y, z1)
+    local res = enqueue_request(map, x, y, z1, priority)
     if not res then
         return nil
     end
@@ -439,7 +316,7 @@ function request (map, x, y, z1, z2, background)
     end
     for i = 1, z2 - z1 do
         local nx, ny = osm_tile.zoom_num(x, y, z1, z1 + i)
-        background_enqueue_request(map, nx, ny, z1 + i)
+        enqueue_request(map, nx, ny, z1 + i, PROT_DIRTY)
     end
     return true
 end
