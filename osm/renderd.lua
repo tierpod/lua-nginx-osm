@@ -41,6 +41,7 @@ local tonumber = tonumber
 local tostring = tostring
 local error = error
 local setmetatable = setmetatable
+local print = print
 
 local osm_tile = require 'osm.tile'
 
