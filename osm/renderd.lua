@@ -51,6 +51,7 @@ _VERSION = '0.3'
 
 local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
 local renderd_cmd_size = 64
+local renderd_timeout = 300000 -- 5m * 60s * 1000ms
 
 -- ------------------------------------
 -- Syncronize thread functions
@@ -239,7 +240,7 @@ local function send_renderd_request(req)
         tcpsock:close()
         return nil
     end
-    tcpsock:settimeout(30000)
+    tcpsock:settimeout(renderd_timeout)
     local data, err = tcpsock:receive(renderd_cmd_size)
     tcpsock:close()
     if not data then
