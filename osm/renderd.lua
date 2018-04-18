@@ -274,7 +274,7 @@ function enqueue_request (map, x, y, z, priority)
     end
     local msg = send_renderd_request(req)
     if not msg then
-        print('req failed ', index)
+        print('req failed (send_renderd_request returns empty msg) ', index)
         return send_signal(index, 300, FAILED)
     end
     local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
@@ -285,8 +285,12 @@ function enqueue_request (map, x, y, z, priority)
     -- "render" request waits for rendering complete
     elseif (priority == PROT_RENDER and res == PROT_DONE) then
         return send_signal(index, 300, SUCCEEDED)
+    -- "render" request returns PROT_NOT_DONE if renderd backend failed
+    elseif (priority == PROT_RENDER and res == PROT_NOT_DONE) then
+        print('res failed (NOT_DONE responce) ', index)
+        return send_signal(index, 300, FAILED)
     else
-        print('res failed ', index)
+        print('res failed (unknown responce) ', index)
         return send_signal(index, 300, FAILED)
     end
 end
