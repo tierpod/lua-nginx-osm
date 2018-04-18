@@ -49,9 +49,11 @@ module(...)
 
 _VERSION = '0.3'
 
-local renderd_sock = 'unix:/var/run/renderd/renderd.socket'
-local renderd_cmd_size = 64
-local renderd_timeout = 300000 -- 5m * 60s * 1000ms
+local renderd_sock       = 'unix:/var/run/renderd/renderd.socket'
+local renderd_cmd_size   = 64
+local renderd_timeout    = 300 -- 5m
+local handle_success_ttl = 300 -- 5m
+local handle_failed_ttl  = 1   -- 1s
 
 -- ------------------------------------
 -- Syncronize thread functions
@@ -240,7 +242,7 @@ local function send_renderd_request(req)
         tcpsock:close()
         return nil
     end
-    tcpsock:settimeout(renderd_timeout)
+    tcpsock:settimeout(renderd_timeout * 1000) -- ms
     local data, err = tcpsock:receive(renderd_cmd_size)
     tcpsock:close()
     if not data then
@@ -274,24 +276,24 @@ function enqueue_request (map, x, y, z, priority)
     end
     local msg = send_renderd_request(req)
     if not msg then
-        print('req failed (send_renderd_request returns empty msg) ', index)
-        return send_signal(index, 300, FAILED)
+        print('req failed (send_renderd_request returns empty msg or timeout is reached) ', index)
+        return send_signal(index, handle_failed_ttl, FAILED)
     end
     local index = get_key(msg["map"], msg["x"], msg["y"], msg["z"])
     local res = msg["cmd"]
     -- "dirty" request returns PROT_NOT_DONE immediately
     if (priority == PROT_DIRTY and res == PROT_NOT_DONE) then
-        return send_signal(index, 300, SUCCEEDED)
+        return send_signal(index, handle_success_ttl, SUCCEEDED)
     -- "render" request waits for rendering complete
     elseif (priority == PROT_RENDER and res == PROT_DONE) then
-        return send_signal(index, 300, SUCCEEDED)
+        return send_signal(index, handle_success_ttl, SUCCEEDED)
     -- "render" request returns PROT_NOT_DONE if renderd backend failed
     elseif (priority == PROT_RENDER and res == PROT_NOT_DONE) then
         print('res failed (NOT_DONE responce) ', index)
-        return send_signal(index, 300, FAILED)
+        return send_signal(index, handle_failed_ttl, FAILED)
     else
         print('res failed (unknown responce) ', index)
-        return send_signal(index, 300, FAILED)
+        return send_signal(index, handle_failed_ttl, FAILED)
     end
 end
 
