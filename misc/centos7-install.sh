@@ -4,7 +4,7 @@
 set -eu
 
 yum install -y epel-release
-yum install -y tmux mc git vim lua lua-bitop htop curl
+yum install -y tmux mc git vim lua lua-bitop lua-filesystem htop curl
 
 # CGAL-devel for building poly2lua.cpp, contains in official postgresql repo.
 REPO_FILE=/etc/yum.repos.d/pgdg-96-centos.repo

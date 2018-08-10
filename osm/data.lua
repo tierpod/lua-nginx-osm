@@ -25,9 +25,11 @@ local io_popen = io.popen
 local tonumber = tonumber
 local myname = ...
 
+local lfs = require "lfs"
+
 module(...)
 
-_VERSION = '0.31'
+_VERSION = '0.32'
 
 local target = {
     ['africa']                    = myname .. '.africa',
@@ -186,18 +188,11 @@ function get_region(name)
     return region
 end
 
--- get file modification time with 'stat' utility in unixtime
+-- get file modification time with 'lua-filesystem' module unixtime
 -- args: filename (string)
 -- returns: mtime (int) or nil
 function get_mtime(filename)
-    local fd = io_popen('/usr/bin/stat -c %Y '..filename..' 2>&1')
-    if fd == nil then
-        return nil
-    end
-
-    local mtime = fd:read()
-    fd:close()
-    return tonumber(mtime)
+    return lfs.attributes(filename, "modification")
 end
 
 -- compare modification time of two files.

@@ -42,7 +42,7 @@ local setmetatable = setmetatable
 local error = error
 
 local osm_data = require 'osm.data'
-local shmem = ngx.shared.osm_last_update 
+local shmem = ngx.shared.osm_last_update
 
 module(...)
 
