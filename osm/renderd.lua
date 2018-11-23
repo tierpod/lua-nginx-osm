@@ -45,9 +45,7 @@ local print = print
 
 local osm_tile = require 'osm.tile'
 
-module(...)
-
-_VERSION = '0.3'
+local _M = { _VERSION = '0.4' }
 
 local renderd_sock       = 'unix:/var/run/renderd/renderd.socket'
 local renderd_cmd_size   = 64
@@ -257,7 +255,7 @@ end
 -- argument: map, x, y, zoom
 -- return:   true or nil
 --
-function enqueue_request (map, x, y, z, priority)
+function _M.enqueue_request (map, x, y, z, priority)
     local mx = x - x % 8
     local my = y - y % 8
     local mz = z
@@ -303,7 +301,7 @@ end
 --
 -- if background is true, send request with dirty priority (do not wait for results).
 --
-function request (map, x, y, z1, z2, background)
+function _M.request (map, x, y, z1, z2, background)
     local z2 = tonumber(z2)
     local z1 = tonumber(z1)
     if z1 > z2 then
@@ -315,7 +313,7 @@ function request (map, x, y, z1, z2, background)
         priority = PROT_DIRTY
     end
 
-    local res = enqueue_request(map, x, y, z1, priority)
+    local res = _M.enqueue_request(map, x, y, z1, priority)
     if not res then
         return nil
     end
@@ -324,16 +322,9 @@ function request (map, x, y, z1, z2, background)
     end
     for i = 1, z2 - z1 do
         local nx, ny = osm_tile.zoom_num(x, y, z1, z1 + i)
-        enqueue_request(map, nx, ny, z1 + i, PROT_DIRTY)
+        _M.enqueue_request(map, nx, ny, z1 + i, PROT_DIRTY)
     end
     return true
 end
 
-local class_mt = {
-    -- to prevent use of casual module global variables
-    __newindex = function (table, key, val)
-        error('attempt to write to undeclared variable "' .. key .. '"')
-    end
-}
-
-setmetatable(_M, class_mt)
+return _M

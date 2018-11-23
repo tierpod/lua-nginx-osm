@@ -42,16 +42,14 @@ local setmetatable = setmetatable
 local error = error
 
 local osm_data = require 'osm.data'
-local shmem = ngx.shared.osm_last_update
+if ngx ~= nil then
+    local shmem = ngx.shared.osm_last_update
+end
 
-module(...)
-
-_VERSION = '0.11'
-
-local mt = { __index = _M }
+local _M = { _VERSION = '0.12' }
 
 -- tile to lon/lat
-function num2deg(x, y, zoom)
+function _M.num2deg(x, y, zoom)
     local n = 2 ^ zoom
     local lon_deg = x / n * 360.0 - 180.0
     local lat_rad = atan(sinh(pi * (1 - 2 * y / n)))
@@ -60,7 +58,7 @@ function num2deg(x, y, zoom)
 end
 
 -- lon/lat to tile
-function deg2num(lon, lat, zoom)
+function _M.deg2num(lon, lat, zoom)
     local n = 2 ^ zoom
     local lon_deg = tonumber(lon)
     local lat_rad = rad(lat)
@@ -70,7 +68,7 @@ function deg2num(lon, lat, zoom)
 end
 
 -- tile cordinate scale to zoom
-function zoom_num(x, y, z, zoom)
+function _M.zoom_num(x, y, z, zoom)
     if z > zoom then
         local nx = bit.rshift(x, z-zoom)
         local ny = bit.rshift(y, z-zoom)
@@ -86,15 +84,15 @@ end
 -- checks if tile with x, y, z coordinates inside region
 -- arguments: table region, int x, y, z
 -- returns: true if tile inside region, otherwise false
-function is_inside_region(region, x, y, z)
+function _M.is_inside_region(region, x, y, z)
     -- check inclusion of polygon
-    local nx, ny = zoom_num(x, y, z, 20)
+    local nx, ny = _M.zoom_num(x, y, z, 20)
     for _, b in pairs(region) do
         local x1 = nil
         local y1 = nil
         local tmp_inc = true
         for _, v in pairs(b) do
-            local x2, y2 = deg2num(v.lon, v.lat, 20)
+            local x2, y2 = _M.deg2num(v.lon, v.lat, 20)
             if x1 ~= nil then
                 local res = (y1 - y2) * nx + (x2 - x1) * ny + x1 * y2 - x2 * y1
                 if res > 0 then
@@ -116,7 +114,7 @@ end
 -- arguments: int x, y, z
 -- return: filename of metatile
 --
-function xyz_to_metatile_filename (x, y, z)
+function _M.xyz_to_metatile_filename (x, y, z)
     local res=''
     local v = 0
     local mx = x - x % 8
@@ -145,7 +143,7 @@ end
 -- return png or nil
 --
 --
-function get_tile(metafilename, x, y)
+function _M.get_tile(metafilename, x, y)
     local imgfile = metafilename
     local fd, err = io_open(imgfile,"rb")
     if fd == nil then
@@ -174,7 +172,7 @@ end
 -- get map name from uri
 -- arguments: string uri, ext
 -- returns: string mapname or nil
-function get_mapname(uri, ext)
+function _M.get_mapname(uri, ext)
     local uri = tostring(uri)
     local captures = ''
     if ext == '' then
@@ -194,7 +192,7 @@ end
 -- get tile coordinates from uri
 -- arguments: string uri, base, ext
 -- returns: int (ox, oy, oz) or nil
-function get_cordination(uri, base, ext)
+function _M.get_cordination(uri, base, ext)
     local uri = tostring(uri)
     local captures = ''
     if ext == '' then
@@ -211,7 +209,7 @@ function get_cordination(uri, base, ext)
     return tonumber(ox), tonumber(oy), tonumber(oz)
 end
 
-function check_integrity_xyzm(x, y, z, minz, maxz)
+function _M.check_integrity_xyzm(x, y, z, minz, maxz)
     local x = tonumber(x)
     local y = tonumber(y)
     local z = tonumber(z)
@@ -230,7 +228,7 @@ function check_integrity_xyzm(x, y, z, minz, maxz)
     return true
 end
 
-function check_integrity_xyz(x, y, z)
+function _M.check_integrity_xyz(x, y, z)
     local lim = 2 ^ z
     if x < 0 or x >= lim or y < 0 or y >= lim then
         return nil
@@ -245,7 +243,11 @@ end
 --   Here we use ngx.shared.osm_last_update for caching mtime of flagfilename per map
 --   you need to set /etc/conf.d/lua.conf
 --      ngx_shared_dict osm_last_update 8k;
-function is_outdated(metafilename, flagfilename, map, exptime)
+function _M.is_outdated(metafilename, flagfilename, map, exptime)
+    if shmem == nil then
+        return false
+    end
+
     -- get last_update from shared memory cache
     local last_update, flags = shmem:get(map)
     if last_update == nil then
@@ -278,16 +280,13 @@ end
 -- get last update time for map from nginx shared cache
 -- args: map (string)
 -- returns: last_update time (string)
-function get_last_update(map)
+function _M.get_last_update(map)
+    if shmem == nil then
+        return nil
+    end
+
     local last_update = shmem:get(map)
     return last_update
 end
 
-local class_mt = {
-    -- to prevent use of casual module global variables
-    __newindex = function (table, key, val)
-        error('attempt to write to undeclared variable "' .. key .. '"')
-    end
-}
-
-setmetatable(_M, class_mt)
+return _M

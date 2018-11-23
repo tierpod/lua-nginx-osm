@@ -41,9 +41,7 @@ local setmetatable = setmetatable
 
 local osm_tile = require 'osm.tile'
 
-module(...)
-
-_VERSION = '0.30'
+local _M = { _VERSION = '0.31' }
 
 local tirexsock = 'unix:/var/run/tirex/master.sock'
 local tirex_cmd_max_size = 512
@@ -332,7 +330,7 @@ end
 -- argument: map, x, y, z
 -- return:   true or nil
 --
-function send_request (map, x, y, z)
+function _M.send_request (map, x, y, z)
     return enqueue_request(map, x, y, z, 1)
 end
 
@@ -350,7 +348,7 @@ Buckets definition in default
 --     priority = 1-10 for live requests
 -- return:   true or nil
 --
-function enqueue_request (map, x, y, z, priority)
+function _M.enqueue_request (map, x, y, z, priority)
     local mx = x - x % 8
     local my = y - y % 8
     local mz = z
@@ -386,7 +384,7 @@ end
 -- argument: map, x, y, z, priority
 -- return:   true or nil
 --
-function dequeue_request (map, x, y, z, priority)
+function _M.dequeue_request (map, x, y, z, priority)
     local mx = x - x % 8
     local my = y - y % 8
     local mz = z
@@ -418,7 +416,7 @@ end
 
 -- function: ping()
 -- return: true or nil
-function ping()
+function _M.ping()
     -- Create request command
     local req = serialize_msg({["type"] = 'ping'})
     local msg = send_tirex_request(req)
@@ -435,7 +433,7 @@ end
 -- argument: map, x, y, zoom, maxzoom, priority
 -- return:   true or nil
 --
-function request (map, x, y, z1, z2, priority)
+function _M.request (map, x, y, z1, z2, priority)
     local z2 = tonumber(z2)
     local z1 = tonumber(z1)
     if z1 > z2 then
@@ -459,7 +457,7 @@ function request (map, x, y, z1, z2, priority)
     return true
 end
 
-function cancel (map, x, y, z1, z2, prirority)
+function _M.cancel (map, x, y, z1, z2, prirority)
     local z2 = tonumber(z2)
     local z1 = tonumber(z1)
     if z1 > z2 then
@@ -473,11 +471,4 @@ function cancel (map, x, y, z1, z2, prirority)
     return true
 end
 
-local class_mt = {
-    -- to prevent use of casual module global variables
-    __newindex = function (table, key, val)
-        error('attempt to write to undeclared variable "' .. key .. '"')
-    end
-}
-
-setmetatable(_M, class_mt)
+return _M

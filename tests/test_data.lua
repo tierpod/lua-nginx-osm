@@ -18,6 +18,6 @@ assert(osm_data.is_file_newer(file1, file2) == false)
 print('  ok')
 
 print('is_file_newer: check if file2 does not exist:')
-assert(osm.data.is_file_newer('/tmp/noexist.123', file1) == false)
+assert(osm_data.is_file_newer('/tmp/noexist.123', file1) == false)
 print('  ok')
 

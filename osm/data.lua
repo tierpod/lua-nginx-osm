@@ -27,9 +27,7 @@ local myname = ...
 
 local lfs = require "lfs"
 
-module(...)
-
-_VERSION = '0.32'
+local _M = { _VERSION = '0.33' }
 
 local target = {
     ['africa']                    = myname .. '.africa',
@@ -177,7 +175,7 @@ local world = {
   }
 }
 
-function get_region(name)
+function _M.get_region(name)
     if name == 'world' then
         return world
     end
@@ -191,20 +189,20 @@ end
 -- get file modification time with 'lua-filesystem' module unixtime
 -- args: filename (string)
 -- returns: mtime (int) or nil
-function get_mtime(filename)
+function _M.get_mtime(filename)
     return lfs.attributes(filename, "modification")
 end
 
 -- compare modification time of two files.
 -- args: file1, file2 (string)
 -- returns: true if file1 newer than file2, otherwise false.
-function is_file_newer(file1, file2)
-    local mtime1 = get_mtime(file1)
+function _M.is_file_newer(file1, file2)
+    local mtime1 = _M.get_mtime(file1)
     if mtime1 == nil then
         return false
     end
 
-    local mtime2 = get_mtime(file2)
+    local mtime2 = _M.get_mtime(file2)
     if mtime2 == nil then
         return false
     end
@@ -212,11 +210,4 @@ function is_file_newer(file1, file2)
     return mtime1 > mtime2
 end
 
-local class_mt = {
-    -- to prevent use of casual module global variables
-    __newindex = function (table, key, val)
-        error('attempt to write to undeclared variable "' .. key .. '"')
-    end
-}
-
-setmetatable(_M, class_mt)
+return _M

@@ -38,9 +38,7 @@ local setmetatable = setmetatable
 
 local print = print
 
-module(...)
-
-_VERSION = '0.1'
+local _M = { _VERSION = '0.2' }
 
 local http_entrypoint = 'http://localhost'
 
@@ -272,7 +270,7 @@ end
 -- argument: map, x, y, zoom
 -- return:   true or nil
 --
-function enqueue_request (map, x, y, z)
+function _M.enqueue_request (map, x, y, z)
     local mx = x - x % 8
     local my = y - y % 8
     local mz = z
@@ -308,7 +306,7 @@ end
 -- argument: map, x, y, zoom, maxzoom
 -- return:   true or nil
 --
-function request (map, x, y, z1, z2)
+function _M.request (map, x, y, z1, z2)
     local z2 = tonumber(z2)
     local z1 = tonumber(z1)
     if z1 > z2 then
@@ -329,11 +327,4 @@ function request (map, x, y, z1, z2)
     return true
 end
 
-local class_mt = {
-    -- to prevent use of casual module global variables
-    __newindex = function (table, key, val)
-        error('attempt to write to undeclared variable "' .. key .. '"')
-    end
-}
-
-setmetatable(_M, class_mt)
+return _M
