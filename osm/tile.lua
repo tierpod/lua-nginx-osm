@@ -42,8 +42,9 @@ local setmetatable = setmetatable
 local error = error
 
 local osm_data = require 'osm.data'
+local shmem = nil
 if ngx ~= nil then
-    local shmem = ngx.shared.osm_last_update
+    shmem = ngx.shared.osm_last_update
 end
 
 local _M = { _VERSION = '0.12' }
