@@ -45,7 +45,7 @@ local print = print
 
 local osm_tile = require 'osm.tile'
 
-local _M = { _VERSION = '0.4' }
+local _M = { _VERSION = '0.5' }
 
 local renderd_sock       = 'unix:/var/run/renderd/renderd.socket'
 local renderd_cmd_size   = 64
@@ -325,6 +325,16 @@ function _M.request (map, x, y, z1, z2, background)
         _M.enqueue_request(map, nx, ny, z1 + i, PROT_DIRTY)
     end
     return true
+end
+
+-- function: set_renderd_sock
+-- argument: addr (string)
+-- return:   nil
+--
+-- update local renderd_sock address
+--
+function _M.set_renderd_sock(addr)
+    renderd_sock = addr
 end
 
 return _M

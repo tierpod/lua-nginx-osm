@@ -20,4 +20,11 @@ When z1 == z2, just ask to render single tile.
 If background (boolean, optional) == true, request to render in background and do now wait for
 complete.
 
+set_renderd_sock
+----------------
+
+**syntax:** *osm.renderd.set_renderd_sock('unix:/path/to/renderd.socket')*
+
+Updates pre-defined renderd_sock value.
+
 [1]: https://github.com/openstreetmap/mod_tile
