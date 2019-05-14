@@ -7,8 +7,8 @@
 import argparse
 from collections import defaultdict
 
-from pyosm.point import LatLong, zxy_to_latlong
-from pyosm.polygon import Polygon
+from pyosmkit.point import LatLong, zxy_to_latlong
+from pyosmkit.polygon import Polygon
 
 
 def parse_args():
