@@ -18,9 +18,9 @@ REGIONS_DATA = asia.lua africa.lua \
 	central-america.lua \
 	south-america.lua
 
-.PHONY: all install clean
+.PHONY: build install clean
 
-all: $(REGIONS_DATA)
+build: $(REGIONS_DATA)
 	for r in $(REGIONS) ; do \
 	  $(MAKE) -C $$r all ;\
 	done
@@ -37,10 +37,11 @@ clean:
 	  $(MAKE) -C $$r clean ;\
 	done
 
-install: all
+install:
 	$(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DATA_DIR)
-	$(INSTALL) *.lua $(DESTDIR)/$(LUA_LIB_DATA_DIR)
+	$(INSTALL) *.lua $(DESTDIR)/$(LUA_LIB_DATA_DIR) || true
 	for d in $(REGIONS) ; do \
-	    $(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DATA_DIR)/$$(d)/ ;\
-	    $(INSTALL) $(d)/*.lua $(DESTDIR)/$(LUA_LIB_DATA_DIR)/$$(d)/ ;\
+	    [[ -d $$d ]] || continue ;\
+	    $(INSTALL) -m 0755 -d $(DESTDIR)/$(LUA_LIB_DATA_DIR)/$$d/ ;\
+	    $(INSTALL) -m 0644 $$d/*.lua $(DESTDIR)/$(LUA_LIB_DATA_DIR)/$$d/ || true ;\
 	done

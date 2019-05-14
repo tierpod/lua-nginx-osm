@@ -8,9 +8,9 @@ POLY2LUA = utils/poly2lua/poly2lua
 
 DATA = osm/data
 
-.PHONY: all install
+.PHONY: build install
 
-all: $(POLY2LUA) data
+build: $(POLY2LUA) data
 
 $(POLY2LUA): utils/poly2lua.cpp utils/CMakeLists.txt
 	mkdir -p utils/poly2lua
@@ -24,14 +24,14 @@ test:
 	$(LUA) test_inside_iran.lua
 
 data:
-	$(MAKE) -C $(DATA) all
+	$(MAKE) -C $(DATA) build
 
 clean:
 	rm -rf utils/poly2lua
 	$(MAKE) -C $(DATA) clean
 
-install: all
-	$(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DIR)/osm
-	$(INSTALL) -d $(DESTDIR)/$(LUA_LIB_DIR)/osm/data
-	$(INSTALL) osm/*.lua $(DESTDIR)/$(LUA_LIB_DIR)/osm
+install:
+	$(INSTALL) -m 0755 -d $(DESTDIR)/$(LUA_LIB_DIR)/osm
+	$(INSTALL) -m 0755 -d $(DESTDIR)/$(LUA_LIB_DIR)/osm/data
+	$(INSTALL) -m 0644 osm/*.lua $(DESTDIR)/$(LUA_LIB_DIR)/osm
 	$(MAKE) -C $(DATA) install
