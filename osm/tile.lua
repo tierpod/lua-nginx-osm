@@ -41,13 +41,7 @@ local io_seek = io.seek
 local setmetatable = setmetatable
 local error = error
 
-local osm_data = require 'osm.data'
-local shmem = nil
-if ngx ~= nil then
-    shmem = ngx.shared.osm_last_update
-end
-
-local _M = { _VERSION = '0.12' }
+local _M = { _VERSION = '0.13' }
 
 -- tile to lon/lat
 function _M.num2deg(x, y, zoom)
@@ -235,59 +229,6 @@ function _M.check_integrity_xyz(x, y, z)
         return nil
     end
     return true
-end
-
--- checks if metatile file is outdated
--- args: metafilename, flagfilename, map (string), exptime (int)
--- returns: true if metafilename older than flagfilename.
---
---   Here we use ngx.shared.osm_last_update for caching mtime of flagfilename per map
---   you need to set /etc/conf.d/lua.conf
---      ngx_shared_dict osm_last_update 8k;
-function _M.is_outdated(metafilename, flagfilename, map, exptime)
-    if shmem == nil then
-        return false
-    end
-
-    -- get last_update from shared memory cache
-    local last_update, flags = shmem:get(map)
-    if last_update == nil then
-        -- if not found in cache, get of flagfilename
-        local mtime = osm_data.get_mtime(flagfilename)
-        if mtime == nil then
-            return false
-        end
-
-        -- store mtime of flagfilename to shared memory cache with key = map, value = last_update
-        -- and expiration time = exptime
-        last_update = mtime
-        local success = shmem:set(map, last_update, exptime)
-        if not success then
-            return false
-        end
-    end
-
-    -- get mtime for metafilename
-    local mtime = osm_data.get_mtime(metafilename)
-
-    -- if metafilename does not exist, mark it as outdated
-    if mtime == nil then
-        return true
-    end
-
-    return last_update > mtime
-end
-
--- get last update time for map from nginx shared cache
--- args: map (string)
--- returns: last_update time (string)
-function _M.get_last_update(map)
-    if shmem == nil then
-        return nil
-    end
-
-    local last_update = shmem:get(map)
-    return last_update
 end
 
 return _M
