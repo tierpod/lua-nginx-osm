@@ -1,6 +1,8 @@
 Update mechanism methods
 ========================
 
+This module uses external module "lfs" (package lua-filesystem in centos 7 repo).
+
 This module uses shared dict **ngx.shared.osm_last_update** to cache:
 
 * current update mechanism state: enabled or disabled
@@ -10,6 +12,10 @@ You need to set in nginx configuration file:
 
 ```plain
 lua_shared_dict osm_last_update 8k;
+
+init_worker_by_lua_block {
+    local lfs = require "lfs"
+}
 ```
 
 You can change default module configuration after import:
@@ -75,3 +81,19 @@ get_last_update
 **syntax:** *time = osm_update.get_last_update(map)*
 
 Get last update time stored in nginx shared memory cache for given map.
+
+get_mtime
+---------
+
+**syntax:** *mtime = data.get_mtime("/var/lib/mod_tile/planet-import-complete")*
+
+Get modification time of file. If file does not exists, returns nil.
+
+is_file_newer
+-------------
+
+**syntax:** *is_outdated = data.is_file_newer("/var/lib/mod_tile/planet-import-complete", "/var/lib/mod_tile/map/1/1/1.png")*
+
+Compare modification time of two files. Returns true if file1 newer than file2.
+
+[1]: https://keplerproject.github.io/luafilesystem

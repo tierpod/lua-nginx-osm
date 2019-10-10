@@ -18,16 +18,10 @@
 --    You should have received a copy of the GNU Affero General Public License
 --    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --
-local setmetatable = setmetatable
-local error = error
 local require = require
-local io_popen = io.popen
-local tonumber = tonumber
 local myname = ...
 
-local lfs = require "lfs"
-
-local _M = { _VERSION = '0.33' }
+local _M = { _VERSION = '0.34' }
 
 local target = {
     ['africa']                    = myname .. '.africa',
@@ -185,29 +179,3 @@ function _M.get_region(name)
     local region = require(target[name])
     return region
 end
-
--- get file modification time with 'lua-filesystem' module unixtime
--- args: filename (string)
--- returns: mtime (int) or nil
-function _M.get_mtime(filename)
-    return lfs.attributes(filename, "modification")
-end
-
--- compare modification time of two files.
--- args: file1, file2 (string)
--- returns: true if file1 newer than file2, otherwise false.
-function _M.is_file_newer(file1, file2)
-    local mtime1 = _M.get_mtime(file1)
-    if mtime1 == nil then
-        return false
-    end
-
-    local mtime2 = _M.get_mtime(file2)
-    if mtime2 == nil then
-        return false
-    end
-
-    return mtime1 > mtime2
-end
-
-return _M

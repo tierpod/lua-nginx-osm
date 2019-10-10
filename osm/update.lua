@@ -18,7 +18,7 @@
 --    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --
 
-local osm_data = require 'osm.data'
+local lfs = require "lfs"
 
 -- you have to set: ngx_shared_dict osm_last_update 8k;
 local shmem = ngx.shared.osm_last_update
@@ -48,10 +48,10 @@ function _M.is_outdated(metafilename, map)
     end
 
     -- get last_update from shared memory cache
-    local last_update, flags = shmem:get(map)
+    local last_update = shmem:get(map)
     if last_update == nil then
         -- if not found in cache, get mtime for flag file
-        local mtime = osm_data.get_mtime(_M.FLAGFILE)
+        local mtime = _M.get_mtime(_M.FLAGFILE)
         if mtime == nil then
             return false
         end
@@ -66,7 +66,7 @@ function _M.is_outdated(metafilename, map)
     end
 
     -- get mtime for metafilename
-    local mtime = osm_data.get_mtime(metafilename)
+    local mtime = _M.get_mtime(metafilename)
 
     -- if metafilename does not exist, mark it as outdated
     if mtime == nil then
@@ -127,6 +127,30 @@ function _M.get_list()
     end
 
     return items
+end
+
+-- get file modification time with 'lua-filesystem' module unixtime
+-- args: filename (string)
+-- returns: mtime (int) or nil
+function _M.get_mtime(filename)
+    return lfs.attributes(filename, "modification")
+end
+
+-- compare modification time of two files.
+-- args: file1, file2 (string)
+-- returns: true if file1 newer than file2, otherwise false.
+function _M.is_file_newer(file1, file2)
+    local mtime1 = _M.get_mtime(file1)
+    if mtime1 == nil then
+        return false
+    end
+
+    local mtime2 = _M.get_mtime(file2)
+    if mtime2 == nil then
+        return false
+    end
+
+    return mtime1 > mtime2
 end
 
 return _M
