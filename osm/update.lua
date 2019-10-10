@@ -26,7 +26,7 @@ local shmem = ngx.shared.osm_last_update
 local UPDATE_KEY = 'enabled'
 
 local _M = {
-    _VERSION = '0.1',
+    _VERSION = '0.2',
     FLAGFILE = '/var/lib/mod_tile/planet-import-complete',
     EXPTIME = 3600, -- one hour
 }
@@ -122,7 +122,7 @@ function _M.get_list()
 
     for _, key in pairs(shmem:get_keys()) do
         if key ~= UPDATE_KEY then
-            table.insert(items, key, shmem:get(key))
+            items[key] = shmem:get(key)
         end
     end
 
