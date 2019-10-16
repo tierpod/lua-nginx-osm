@@ -64,7 +64,7 @@ Returns list of all cached items.
 is_outdated
 -----------
 
-**syntax:** *is_outdated = osm_update.is_outdated(metafilename, map)*
+**syntax:** *is_outdated = osm_update.is_outdated(metafilename, map, offset)*
 
 Checks if metatile file is outdated.
 
@@ -74,6 +74,16 @@ as outdated and rerender it.
 
 Uses nginx shared dict to cache mtime of flagfilename per map name (does not need to read this file
 on every request).
+
+*Offset* is the optional argument (int, default value is 0). This value will be subtracted from
+FLAGFILE modification time. Can be useful if some metatiles must be updated with some delay:
+
+```lua
+-- update metatiles for 18 zoom 30 days after new database was imported
+if z == 18 then
+  local is_outdated = osm_update.is_outdated('/var/lib/mod_tile/mapname/16/0/0/0/0/0.meta', 'mapname', 30 * 24 * 60 * 60)
+end
+```
 
 get_last_update
 ---------------
@@ -85,14 +95,14 @@ Get last update time stored in nginx shared memory cache for given map.
 get_mtime
 ---------
 
-**syntax:** *mtime = data.get_mtime("/var/lib/mod_tile/planet-import-complete")*
+**syntax:** *mtime = osm_update.get_mtime(filepath)*
 
-Get modification time of file. If file does not exists, returns nil.
+Get modification time of file. If file does not exist, returns nil.
 
 is_file_newer
 -------------
 
-**syntax:** *is_outdated = data.is_file_newer("/var/lib/mod_tile/planet-import-complete", "/var/lib/mod_tile/map/1/1/1.png")*
+**syntax:** *is_newer = osm_update.is_file_newer(filepath1, filepath12)*
 
 Compare modification time of two files. Returns true if file1 newer than file2.
 

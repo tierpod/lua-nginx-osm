@@ -26,7 +26,7 @@ local shmem = ngx.shared.osm_last_update
 local UPDATE_KEY = 'enabled'
 
 local _M = {
-    _VERSION = '0.2',
+    _VERSION = '0.3',
     FLAGFILE = '/var/lib/mod_tile/planet-import-complete',
     EXPTIME = 3600, -- one hour
 }
@@ -39,10 +39,11 @@ function _M.get_state()
 end
 
 -- checks if metatile file is outdated
--- args: metafilename, map (string)
+-- args: metafilename, map (string),
+--       offset (int) [optional, default=0]: offset in seconds, subtracted from metafilename mtime
 -- returns: true if metafilename older than flagfilename.
 --
-function _M.is_outdated(metafilename, map)
+function _M.is_outdated(metafilename, map, offset)
     if shmem == nil then
         return false
     end
@@ -56,7 +57,7 @@ function _M.is_outdated(metafilename, map)
             return false
         end
 
-        -- store mtime of flaf file to shared memory cache with key = map, value = last_update
+        -- store mtime of flag file to shared memory cache with key = map, value = last_update
         -- and expiration time = exptime
         last_update = mtime
         local success = shmem:set(map, last_update, _M.EXPTIME)
@@ -73,7 +74,8 @@ function _M.is_outdated(metafilename, map)
         return true
     end
 
-    return last_update > mtime
+    local _offset = offset or 0
+    return (last_update - _offset) > mtime
 end
 
 -- get last update time for map from nginx shared cache

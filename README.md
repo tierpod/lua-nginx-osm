@@ -97,14 +97,11 @@ Modules documentation
 =====================
 
 * [tile methods](doc/osm_tile.md)
-
 * [data methods](doc/osm_data.md)
-
 * [tirex methods](doc/osm_tirex.md)
-
 * [mod_tile+renderd methods](doc/osm_renderd.md)
-
 * [custom http backend methods](doc/osm_http.md)
+* [update methods](doc/osm_update.md)
 
 
 TODO
