@@ -179,3 +179,5 @@ function _M.get_region(name)
     local region = require(target[name])
     return region
 end
+
+return _M
