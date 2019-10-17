@@ -97,6 +97,7 @@ Modules documentation
 =====================
 
 * [tile methods](doc/osm_tile.md)
+* [tile object-style methods](doc/osm_tileobj.md)
 * [data methods](doc/osm_data.md)
 * [tirex methods](doc/osm_tirex.md)
 * [mod_tile+renderd methods](doc/osm_renderd.md)
@@ -153,7 +154,7 @@ Copyright and License
 Hiroshi Miura, 2013
 OpenStreetMap Foundation Japan, 2013
 Mikhail Okhotin, 2016
-Pavel Podkorytov, 2017
+Pavel Podkorytov, 2019
 
 Distributed under GPLv3 License.
 
