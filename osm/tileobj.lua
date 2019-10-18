@@ -37,11 +37,12 @@ local osm_tile = require 'osm.tile'
 
 local match = string.match
 
--- Returns new tile object.
+-- Returns new tile object. If something goes wrong, returns nil and error message.
 --
 -- @param   str     tile uri (format: /mapname/x/y/z.ext)
 -- @param   str     metatiles root directory
--- @return  table
+-- @return  table   new tile object
+-- @return  err     error message
 function _M.new_from_uri(uri, metatiles_dir)
     local ext = 'png'
     local content_type = 'image/png'
@@ -52,6 +53,9 @@ function _M.new_from_uri(uri, metatiles_dir)
     end
 
     local map = osm_tile.get_mapname(uri, ext)
+    if not map then
+        return nil, "unable to get map name from uri: "..uri
+    end
     local x, y, z = osm_tile.get_cordination(uri, map, ext)
 
     if metatiles_dir then
@@ -66,7 +70,7 @@ function _M.new_from_uri(uri, metatiles_dir)
         ext = ext,
         content_type = content_type,
         is_vector = is_vector,
-    }, mt)
+    }, mt), nil
 end
 
 -- Checks if tile.map contains in maps list.
