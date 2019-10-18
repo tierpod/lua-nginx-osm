@@ -6,7 +6,11 @@ This module provides a thin object-style wrapper around *osm_tile* module method
 ```lua
 osm_tile = require 'osm.tileobj'
 
-local tile = osm_tile.new_from_uri('/mystyle1/18/233816/100256.png')
+local tile, err = osm_tile.new_from_uri('/mystyle1/18/233816/100256.png')
+if err then
+  ngx.log(ngx.ERR, 'unable to create tile object: '..err)
+end
+
 if tile:is_inside_maps({'mystyle1', 'mystyle2'}) then
   ngx.log(ngx.ERR, 'tile'..tile..' belongs to selected styles')
 end
@@ -22,7 +26,7 @@ end
 new_from_uri
 ------------
 
-**syntax:** *tile = new_from_uri(uri, metatiles_dir?)*
+**syntax:** *tile, err = new_from_uri(uri, metatiles_dir?)*
 
 Returns new tile object with attributes:
 
@@ -31,6 +35,8 @@ Returns new tile object with attributes:
 * ext (string): tile extension
 * content_type (string): content_type (based on ext)
 * is_vector (bool): true if given uri ends with '.mvt'
+
+If something goes wrong, returns nil and error message.
 
 *metatiles_dir* is the optional argument ('/var/lib/mod_tile' if not set)
 
