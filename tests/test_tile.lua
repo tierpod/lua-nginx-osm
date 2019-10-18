@@ -2,33 +2,61 @@
 
 package.path = '../?.lua'
 
-local osm_tile=require "osm.tile"
+local osm_tile = require "osm.tile"
 local map = "data"
-local uri = "/18/233816/100256.png"
 
-print('test with map data and uri:', uri)
+print('TESTS FOR osm_tile')
 
-local x, y, z = osm_tile.get_cordination(uri, "", "png")
+--
+-- test wrong uri first
+--
+local uri = '/data/-1/4294967295/4294967295.png'
 
-print('get_cordination test:')
-print('x', assert(tonumber(x), 233816))
-print('y', assert(tonumber(y), 100256))
-print('z', assert(tonumber(z), 18))
-print('ok')
+print('TEST: get_mapname (wrong uri): uri='..uri)
+assert(osm_tile.get_mapname(uri, "png") == nil)
+print('  OK')
+
+print('TEST: tile coordinations: uri='..uri)
+local x, y, z = osm_tile.get_cordination(uri, map, "png")
+print('TEST: get_cordination')
+assert(tonumber(x) == nil)
+assert(tonumber(y) == nil)
+assert(tonumber(z) == nil)
+print('  OK')
+
+--
+-- test good uri
+--
+local uri = '/data/18/233816/100256.png'
+print('TEST: get_mapname (good uri): uri='..uri)
+assert(osm_tile.get_mapname(uri, "png") == map)
+print('  OK')
+
+print('TEST: tile coordinations: uri='..uri)
+local x, y, z = osm_tile.get_cordination(uri, map, "png")
+print('TEST: get_cordination')
+assert(tonumber(x) == 233816)
+assert(tonumber(y) == 100256)
+assert(tonumber(z) == 18)
+print('  OK')
+
+print('TEST: check_integrity_xyzm')
 local minz=15
 local maxz=18
-print('check_integrity_xyzm test:')
 assert(osm_tile.check_integrity_xyzm(x, y, z, minz, maxz))
 maxz=17
-assert(not(osm_tile.check_integrity_xyzm(x, y, z, minz, maxz)))
-print('ok')
+assert(osm_tile.check_integrity_xyzm(x, y, z, minz, maxz) == nil)
+print('  OK')
 
-print('xyz_to_metatile_filename test:')
+print('TEST: xyz_to_metatile_filename')
 local tilefile = osm_tile.xyz_to_metatile_filename(x, y, z)
-print(assert(tilefile, "18/49/152/23/90/128.meta"))
-print('ok')
-print('get_tile test:')
+assert(tilefile == "18/49/152/23/90/128.meta")
+print('  OK')
+
+print('TEST: get_tile')
 local tilepath = "./"..map.."/"..tilefile
 local png, err = assert(osm_tile.get_tile(tilepath, x, y, z))
-print('ok')
-
+assert(png)
+assert(err == nil)
+assert(#png == 2054)
+print('  OK: length is '..#png)

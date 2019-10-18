@@ -4,13 +4,29 @@ package.path = '../?.lua'
 
 local osm_tile = require 'osm.tileobj'
 
+print('TESTS FOR osm_tileobj')
+
+--
+-- test wrong uri fist
+--
+local uri = '/data/-1/4294967295/4294967295.png'
+local tile, err = osm_tile.new_from_uri(uri, '.')
+
+print('TEST: tile object (wrong uri): uri='..uri)
+
+assert(tile == nil)
+assert(err == "unable to get map name from uri: "..uri)
+print('  OK')
+
+--
+-- test good uri
+--
 local uri = '/data/18/233816/100256.png'
-local tile = osm_tile.new_from_uri(uri, '.')
+local tile, err = osm_tile.new_from_uri(uri, '.')
 
-print('TESTS FOR osm_tileobj; uri='..uri)
-
-print('TEST: tile object')
+print('TEST: tile object (good uri): uri='..uri)
 assert(tile)
+assert(err == nil)
 assert(tile.map == 'data')
 assert(tile.z == 18)
 assert(tile.x == 233816)
@@ -40,5 +56,6 @@ print('  OK')
 print('TEST: get_tile')
 local data, err = tile:get_tile()
 assert(data)
-assert(not err)
+assert(err == nil)
+assert(#data == 2054)
 print('  OK: length is '..#data)
