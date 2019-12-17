@@ -70,7 +70,7 @@ local target = {
     ['thailand']   = myname .. '.asia.thailand',
     ['turkmenistan'] = myname .. '.asia.turkmenistan',
     ['uzbekistan'] = myname .. '.asia.uzbekistan',
-    ['vietnam']    = myname .. '.vietnam',
+    ['vietnam']    = myname .. '.asia.vietnam',
 
     ['australia-oceania'] = myname .. '.australia-oceania',
     ['australia']         = myname .. '.australia-oceania.australia',
