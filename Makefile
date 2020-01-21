@@ -18,10 +18,11 @@ $(POLY2LUA): utils/poly2lua.cpp utils/CMakeLists.txt
 	$(MAKE) -C utils/poly2lua
 
 test:
-	cd tests \
-	$(LUA) test_tile.lua; \
-	$(LUA) test_inside_japan.lua; \
-	$(LUA) test_inside_iran.lua
+	cd tests; \
+	for F in test_*.lua; do \
+		echo "*** TEST $$F ***"; \
+		if ! $(LUA) $$F; then echo "*** FAIL $$F ***"; exit 1; fi \
+	done
 
 data:
 	$(MAKE) -C $(DATA) build
